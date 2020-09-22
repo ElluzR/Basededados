@@ -1,0 +1,67 @@
+--1. Clientes que são dependentes.
+
+SELECT DISTINCT
+	   c.nome, 
+	   rep.id_conta,
+       CASE WHEN rep.dependente = false 
+       THEN 'REPRESENTANTE' ELSE '' END AS GERARQUIA
+FROM cliente_conta AS dep 
+JOIN cliente_conta AS rep ON dep.id_conta = rep.id_conta
+JOIN cliente c ON rep.id_cliente = c.id_cliente
+WHERE dep.dependente = true
+ORDER BY rep.id_conta, GERARQUIA desc;
+
+--2. Quais foram as 5 contas que:
+-- a) Mais fizeram transações
+
+SELECT 
+	 cliente_conta.id_conta,
+    	COUNT(*) AS Quantidade    
+FROM transacao
+JOIN cliente_conta
+   ON (transacao.id_cliente_conta = cliente_conta.id_cliente_conta)
+   GROUP BY cliente_conta.id_conta 
+   ORDER BY Quantidade DESC
+   LIMIT 5;
+
+-- b) Menos fizeran transaçoes
+
+SELECT 
+	 cliente_conta.id_conta,
+     COUNT(*) AS Quantidade
+FROM transacao
+JOIN cliente_conta
+	ON (transacao.id_cliente_conta = cliente_conta.id_cliente_conta)
+    GROUP BY cliente_conta.id_conta 
+    ORDER BY Quantidade ASC
+    LIMIT 5;
+
+-- 3. Perda de dados de saldo de cada conta
+
+--a) Recuperação de saldos en contas
+
+UPDATE conta
+SET saldo = calculo_novo_saldo.NEW_SALDO
+FROM
+  (SELECT conta.id_conta,
+   SUM(CASE WHEN transacao.id_tipo_transacao = 1 THEN transacao.valor
+                      ELSE (-1) * transacao.valor END) NEW_SALDO
+FROM transacao
+JOIM cliente_conta
+  ON (transacao.id_cliente_conta = cliente_conta.id_cliente_conta)
+JOIN conta 
+  ON (cliente_conta.id_conta = conta.id_conta)  
+GROUP BY  
+        conta.id_conta,                          
+        conta.saldo) AS calculo_novo_saldo
+        WHERE calculo_novo_saldo.id_conta = conta.id_conta;   
+
+-- b) Conta-saldo
+
+SELECT  conta.id_conta AS "N° de conta", 
+                 conta.saldo AS "Saldo da Conta" 
+FROM conta
+ORDER BY id_conta;        
+
+
+
